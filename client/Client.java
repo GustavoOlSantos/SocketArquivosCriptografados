@@ -8,7 +8,6 @@ import java.util.Scanner;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
 
 public class Client {
 
@@ -56,24 +55,9 @@ public class Client {
                 continue;
             }
 
-            // 🔐 receber chave do servidor
-            int keySize = dis.readInt();
-            byte[] serverKeyBytes = new byte[keySize];
-            dis.readFully(serverKeyBytes);
-
-            PublicKey serverPublicKey = KeyFactory.getInstance("RSA")
-                    .generatePublic(new X509EncodedKeySpec(serverKeyBytes));
-
-            // 🔐 gerar chave do cliente
-            KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-            gen.initialize(2048);
-            KeyPair clientKeyPair = gen.generateKeyPair();
-
-            // 🔐 enviar chave do cliente
-            byte[] clientKeyBytes = clientKeyPair.getPublic().getEncoded();
-            dos.writeInt(clientKeyBytes.length);
-            dos.write(clientKeyBytes);
-            dos.flush();
+            PublicKey serverPublicKey = KeyExchange.receivePublicKey(dis);
+            KeyPair clientKeyPair = KeyExchange.generateRSA();
+            KeyExchange.sendPublicKey(dos, clientKeyPair.getPublic());
 
             while (true) {
 
@@ -94,13 +78,12 @@ public class Client {
                     Logger.log("Enviando arquivo " + file.getName());
 
                     byte[] data = Files.readAllBytes(file.toPath());
+                    Logger.logBytes("Dados", data);
 
                     SecretKey aesKey = CryptoUtils.generateAESKey();
                     byte[] encryptedData = CryptoUtils.encryptAES(data, aesKey);
 
-                    Cipher rsa = Cipher.getInstance("RSA");
-                    rsa.init(Cipher.ENCRYPT_MODE, serverPublicKey);
-                    byte[] encryptedKey = rsa.doFinal(aesKey.getEncoded());
+                    byte[] encryptedKey = KeyExchange.encryptRSA(aesKey.getEncoded(), serverPublicKey);
 
                     dos.writeUTF(file.getName());
 
@@ -128,11 +111,7 @@ public class Client {
                     byte[] encryptedKey = new byte[keySize2];
                     dis.readFully(encryptedKey);
 
-                    Cipher rsa = Cipher.getInstance("RSA");
-                    rsa.init(Cipher.DECRYPT_MODE, clientKeyPair.getPrivate());
-
-                    
-                    byte[] aesKeyBytes = rsa.doFinal(encryptedKey);
+                    byte[] aesKeyBytes = KeyExchange.decryptRSA(encryptedKey, clientKeyPair.getPrivate());
                     SecretKey aesKey = new SecretKeySpec(aesKeyBytes, "AES");
 
                     int size = dis.readInt();

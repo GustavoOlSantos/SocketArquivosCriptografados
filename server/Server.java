@@ -10,10 +10,7 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
 
-        // 🔐 gerar chave RSA
-        KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-        gen.initialize(2048);
-        keyPair = gen.generateKeyPair();
+        keyPair = KeyExchange.generateRSA();
 
         ServerSocket serverSocket = new ServerSocket(12345);
         System.out.println("Servidor rodando...");

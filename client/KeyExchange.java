@@ -1,6 +1,9 @@
 package client;
+
+import java.io.*;
 import java.security.*;
-import javax.crypto.Cipher;
+import java.security.spec.*;
+import javax.crypto.*;
 
 public class KeyExchange {
 
@@ -20,5 +23,22 @@ public class KeyExchange {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, key);
         return cipher.doFinal(data);
+    }
+
+    public static PublicKey receivePublicKey(DataInputStream dis) throws Exception {
+        int size = dis.readInt();
+        byte[] keyBytes = new byte[size];
+        dis.readFully(keyBytes);
+
+        return KeyFactory.getInstance("RSA")
+                .generatePublic(new X509EncodedKeySpec(keyBytes));
+    }
+
+    public static void sendPublicKey(DataOutputStream dos, PublicKey key) throws Exception {
+        byte[] keyBytes = key.getEncoded();
+
+        dos.writeInt(keyBytes.length);
+        dos.write(keyBytes);
+        dos.flush();
     }
 }

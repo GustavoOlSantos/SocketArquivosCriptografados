@@ -9,7 +9,7 @@ import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 
 import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
+
 
 public class ClientHandler extends Thread {
 
@@ -54,19 +54,8 @@ public class ClientHandler extends Thread {
 
                 currentUser = user;
 
-                // 🔐 ENVIAR chave do servidor
-                byte[] serverKey = Server.keyPair.getPublic().getEncoded();
-                dos.writeInt(serverKey.length);
-                dos.write(serverKey);
-                dos.flush();
-
-                // 🔐 AGORA receber chave do cliente
-                int keySize = dis.readInt();
-                byte[] clientKeyBytes = new byte[keySize];
-                dis.readFully(clientKeyBytes);
-
-                clientPublicKey = KeyFactory.getInstance("RSA")
-                        .generatePublic(new X509EncodedKeySpec(clientKeyBytes));
+                KeyExchange.sendPublicKey(dos, Server.keyPair.getPublic());
+                clientPublicKey = KeyExchange.receivePublicKey(dis);
             }
 
             while (true) {
@@ -76,28 +65,24 @@ public class ClientHandler extends Thread {
                 if (cmd.equals("UPLOAD")) {
 
                     String fileName = dis.readUTF();
+                    Logger.log("Recebendo arquivo " + fileName + " do usuário " + currentUser);
 
                     int keySize = dis.readInt();
                     byte[] encryptedKey = new byte[keySize];
                     dis.readFully(encryptedKey);
 
-                    Cipher rsa = Cipher.getInstance("RSA");
-                    rsa.init(Cipher.DECRYPT_MODE, Server.keyPair.getPrivate());
-
-                    byte[] aesKeyBytes = rsa.doFinal(encryptedKey);
+                    byte[] aesKeyBytes = KeyExchange.decryptRSA(encryptedKey, Server.keyPair.getPrivate());
                     SecretKey aesKey = new SecretKeySpec(aesKeyBytes, "AES");
 
                     int size = dis.readInt();
                     byte[] encryptedData = new byte[size];
                     dis.readFully(encryptedData);
-
-                    Logger.log("Recebendo arquivo " + fileName + " do usuário " + currentUser);
                     Logger.logBytes("Dados criptografados", encryptedData);
+                    
                     byte[] data = CryptoUtils.decryptAES(encryptedData, aesKey);
                     Logger.logBytes("Dados descriptografados", data);
 
                     Files.write(Paths.get("server/files/" + fileName), data);
-
                     Path meta = Paths.get("server/files/register/files.txt");
                     Files.createDirectories(meta.getParent());
 
@@ -117,20 +102,20 @@ public class ClientHandler extends Thread {
                     Logger.log("Com chave Pública: " + clientPublicKey);
 
                     byte[] data = Files.readAllBytes(Paths.get("server/files/" + fileName));
+                    Logger.logBytes("Dados Originais", data);
 
                     SecretKey aesKey = CryptoUtils.generateAESKey();
                     byte[] encryptedData = CryptoUtils.encryptAES(data, aesKey);
+                    Logger.logBytes("Dados criptografados", encryptedData);
 
-                    Cipher rsa = Cipher.getInstance("RSA");
-                    rsa.init(Cipher.ENCRYPT_MODE, clientPublicKey);
-
-                    byte[] encryptedKey = rsa.doFinal(aesKey.getEncoded());
+                    byte[] encryptedKey = KeyExchange.encryptRSA(aesKey.getEncoded(), clientPublicKey);
 
                     dos.writeInt(encryptedKey.length);
                     dos.write(encryptedKey);
 
                     dos.writeInt(encryptedData.length);
                     dos.write(encryptedData);
+                    Logger.log("Arquivo enviado ao cliente");
                 }
 
                 if (cmd.equals("LIST")) {
@@ -150,6 +135,7 @@ public class ClientHandler extends Thread {
                     }
 
                     dos.writeUTF("END");
+                    Logger.log("Lista de arquivos enviada ao cliente");                        
                 }
             }
 
