@@ -32,17 +32,21 @@ public class UserService {
     }
 
     public static boolean register(String user, String password) throws Exception {
-        String hash = CryptoUtils.hashSHA256(password);
 
-        try {
-            FileWriter fw = new FileWriter("server/user/users.txt", true);
-            fw.write(user + ":" + hash + "\n");
-            fw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        user = user.trim();
+        password = password.trim();
+
+        if (users.containsKey(user)) {
             return false;
         }
 
+        String hash = CryptoUtils.hashSHA256(password).trim();
+
+        try (FileWriter fw = new FileWriter("server/user/users.txt", true)) {
+            fw.write(user + ":" + hash + "\n");
+        }
+
+        users.put(user, hash);
         return true;
     }
 }
