@@ -5,6 +5,29 @@
 - **Java SE 21 (LTS)**
 - Sockets TCP
 
+## Métodos Criptográficos utilizados:
+- **Criptografia Simétrica:**
+    - AES
+    - DES
+    - ChaCha20 
+- **Troca de Chaves**
+    - **PKI** (RSA):
+        - Chave utilizada na troca de arquivos entre cliente e servidor
+    - **Diffie-Hellman** (DH):
+        - Chave trocada entre cliente e servidor, mas não utilizada nas transferências
+- **Armazenamento de senhas:**
+    - SHA-256
+
+
+## Funcionalidades do Sistema
+ - Cadastro de Usuários
+ - Login autenticado
+ - Upload de Arquivos com transferência criptografada
+ - Download de Arquivo com transferência criptografada
+ - Listagem de Arquivos no servidor
+ - Identificação do Emissor
+ - Logs para visualização didática dos procedimentos de comunicação, criptografia, decriptografia e identificação de usuários.
+
 ## Como Executar
 
 ### Build
