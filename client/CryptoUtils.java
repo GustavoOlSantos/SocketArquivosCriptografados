@@ -56,10 +56,8 @@ public class CryptoUtils {
         return keyGen.generateKey();
     }
 
-    public static byte[] encryptChaCha(byte[] data, SecretKey key) throws Exception {
+    public static byte[] encryptChaCha(byte[] data, SecretKey key, byte[] nonce) throws Exception {
         Cipher cipher = Cipher.getInstance("ChaCha20");
-        byte[] nonce = new byte[12];
-        new SecureRandom().nextBytes(nonce);
         ChaCha20ParameterSpec param = new ChaCha20ParameterSpec(nonce, 1);
         cipher.init(Cipher.ENCRYPT_MODE, key, param);
         return cipher.doFinal(data);

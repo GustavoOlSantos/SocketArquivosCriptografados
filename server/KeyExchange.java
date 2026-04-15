@@ -40,4 +40,33 @@ public class KeyExchange {
         return KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(keyBytes));
     }
+
+    public static KeyPair generateDH() throws Exception {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("DH");
+        gen.initialize(2048);
+        return gen.generateKeyPair();
+    }
+
+    public static void sendDHPublicKey(DataOutputStream dos, PublicKey key) throws Exception {
+        byte[] keyBytes = key.getEncoded();
+        dos.writeInt(keyBytes.length);
+        dos.write(keyBytes);
+        dos.flush();
+    }
+
+    public static PublicKey receiveDHPublicKey(DataInputStream dis) throws Exception {
+        int size = dis.readInt();
+        byte[] keyBytes = new byte[size];
+        dis.readFully(keyBytes);
+
+        return KeyFactory.getInstance("DH")
+                .generatePublic(new X509EncodedKeySpec(keyBytes));
+    }
+
+    public static byte[] generateSharedSecret(PrivateKey privateKey, PublicKey publicKey) throws Exception {
+        KeyAgreement ka = KeyAgreement.getInstance("DH");
+        ka.init(privateKey);
+        ka.doPhase(publicKey, true);
+        return ka.generateSecret();
+    }
 }

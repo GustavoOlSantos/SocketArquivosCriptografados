@@ -12,7 +12,7 @@ public class UserService {
             List<String> lines = Files.readAllLines(Paths.get("server/user/users.txt"));
 
             for (String line : lines) {
-                line = line.trim(); // 🔥 IMPORTANTE
+                line = line.trim();
                 if (line.isEmpty()) continue;
 
                 String[] parts = line.split(":");
